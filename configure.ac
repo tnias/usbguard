@@ -105,6 +105,15 @@ else
 fi
 
 #
+# libusbx library
+#
+PKG_CHECK_MODULES([usbx], [libusb-1.0 >= 1.0.20],
+[AC_DEFINE([HAVE_LIBUSBX], [1], [libusbx-1.0 API available])
+libusbx_summary="system-wide; $usbx_CFLAGS $usbx_LIBS"],
+[AC_MSG_FAILURE([libusbx-1.0 development files not found!])]
+)
+
+#
 # qb library
 #
 PKG_CHECK_MODULES([qb], [libqb >= 0.16.0],
@@ -653,6 +662,7 @@ echo
 echo "## Libraries"
 echo
 echo "      libqb: $libqb_summary"
+echo "    libusbx: $libusbx_summary"
 echo "     crypto: $crypto_summary"
 echo " libseccomp: $libseccomp_summary"
 echo "  libcap-ng: $libcap_ng_summary"

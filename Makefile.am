@@ -291,7 +291,8 @@ EXTRA_DIST +=\
 
 bin_PROGRAMS=\
 	usbguard \
-	usbguard-rule-parser
+	usbguard-rule-parser \
+	usbguard-mass-storage-read
 
 usbguard_SOURCES=\
 	src/CLI/usbguard.cpp \
@@ -341,6 +342,19 @@ usbguard_rule_parser_CPPFLAGS=\
 
 usbguard_rule_parser_LDADD=\
 	$(top_builddir)/libusbguard.la
+
+usbguard_mass_storage_read_SOURCES=\
+	src/CLI/usbguard-mass-storage-read.cpp \
+	src/CLI/usbguard-mass-storage-read.hpp
+
+usbguard_mass_storage_read_CPPFLAGS=\
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/CLI \
+	@usbx_CFLAGS@
+
+usbguard_mass_storage_read_LDADD=\
+	$(top_builddir)/libusbguard.la \
+	@usbx_LIBS@
 
 #
 # DBus Bridge
