@@ -1,0 +1,73 @@
+Compilation and Installation
+============================
+:author: Daniel Kopeček
+:email: dnk1618@gmail.com
+:date: 2017-04
+:revision: 1
+
+== Compilation and installation from sources ==
+
+//TP: where to find upstream source tarballs
+//TP: how to compile from git repository
+//TP: compile time options
+//TP: building
+//TP: testing
+
+To compile the source code originating from a release tarball, you'll need to install development files of the following projects:
+
+ * link:https://github.com/ClusterLabs/libqb[libqb]: Used for local UNIX socket based IPC.
+ * link:https://github.com/google/protobuf[protobuf]: Used for IPC message (de)serialization.
+ * link:https://libsodium.org[libsodium] or link:https://www.gnupg.org/software/libgcrypt[libgcrypt]: Used for computing device hashes.
+
+Those are the required third-party projects.
+There are two more third-party projects required to compile the core components of USBGuard:
+
+ * link:https://github.com/taocpp/PEGTL[PEGTL]: Used to implement the USBGuard Rule language parser.
+ * link:https://github.com/philsquared/Catch[Catch]: Used for unit testing.
+
+However, these two are bundled inside the release tarball and if you are fine with using the bundled versions, you don't have to install them separately.
+
+There are several optional dependencies which are needed by the optional components like the D-Bus bridge or the Qt based desktop applet.
+
+ * link:https://github.com/seccomp/libseccomp[libseccomp]: Used to implement a syscall whitelist in `usbguard-daemon` and `usbguard-dbus`.
+ * link:https://people.redhat.com/sgrubb/libcap-ng/[libcap-ng]: Used to drop process capabilities `usbguard-daemon` and `usbguard-dbus`.
+ * link:https://www.qt.io/developers/[Qt 4.x or Qt 5.x]: Required to compile the Qt based desktop applet.
+ * link:https://developer.gnome.org/glib/[Glib],
+ link:https://www.freedesktop.org/wiki/Software/dbus/[DBus GLib],
+ link:https://www.freedesktop.org/wiki/Software/polkit/[polkit],
+ link:https://www.xmlsoft.org/[libxml2 and libxslt]: Used by the D-Bus bridge component `usbguard-dbus`.
+ 
+=== Configuring the build ===
+
+The USBGuard project uses the GNU build system based on autoconf, automake and libtool.
+Before you can use `make` to compile the source code, you have to run the shipped `configure` script to configure the compile-time parameters.
+When you run the `configure` script without any options, the default compile-time parameter values will be used or the values will be auto-detected.
+
+ $ ./configure
+ $ make
+ $ sudo make install
+
+After the sources are successfully built, you can run the test suite by executing the +check+ target via `make`
+
+ $ make check
+
+=== Using sources from the upstream GIT repository ===
+
+If you want to compile source code originating from the upstream link:https://github.com/dkopecek/usbguard[GIT repository], then there are aditional steps required to bootstrap the compilation.
+You'll have to install the GNU build system components (autoconf, automake, libtool) and run the `autogen.sh` script which will:
+
+* Fetch the sources (git submodules) of link:https://github.com/taocpp/PEGTL[PEGTL] and link:https://github.com/philsquared/Catch[Catch].
+* Generate the `configure` script from the 'configure.ac' template and initialize the build system.
+
+After that, you can continue with the same process as when compiling from a release tarball.
+
+=== Testing the build ===
+
+//TP: before you install, you should run the upstream test suite.
+//TP: what is tested by the suite, requirements
+//TP: what to do when a test fails
+
+== Installation ==
+
+//TP: intallation from upstream build system
+

@@ -1,0 +1,135 @@
+= Policy
+
+== Rule Language
+
+The USBGuard daemon decides which USB device to authorize based on a policy defined by a set of rules.
+When a USB device is inserted into the system, the daemon scans the existing rules sequentially.
+When a matching rule is found, it either authorizes (**allows**), deauthorizes (**blocks**) or removes (**rejects**) the device, based on the rule target.
+If no matching rule is found, the decision is based on an implicit default target.
+This implicit default is to block the device until a decision is made by the user.
+The rule language grammar, expressed in a BNF-like syntax, is the following:
+
+ rule ::= target attributes.
+
+ target ::= "allow" | "block" | "reject".
+
+ attributes ::= attributes | attribute.
+ attributes ::= .
+
+Rule attributes specify which devices to match or what condition have to be met for the rule to be applicable.
+See the <<device-attributes>> section for the list of available attributes and <<conditions>> for the list of supported rule conditions.
+
+=== Targets
+
+The target of a rule specifies whether the device will be authorized for use or not.
+Three types of target are recognized:
+
+ * *allow* -- **Authorize** the device. The device and its interfaces will be allowed to communicate with the system.
+ * *block* -- **Deauthorize** the device, i.e. don't talk to the device for now.
+ * *reject* -- **Remove** the device from the system, i.e. ignore the device as if it didn't exist.
+
+=== Device Specification
+
+Except the target, all the other fields of a rule need not be specified.
+Such a minimal rule will match any device and allows the policy creator to write an explicit default target.
+If no rule from the policy is applicable to the device, an implicit target configured in **usbguard-daemon.conf**(5) will be used.
+However, if one wants to narrow the applicability of a rule to a set of devices or one device only, it's possible to do so with device attributes and rule conditions.
+
+==== Device Attributes
+
+Device attributes are specific values read from the USB device after it's inserted to the system.
+Which attributes are available is defined below. Some of the attributes are derived and some are based on attributes read directly from the device.
+All attributes support two forms:
+
+ * Single-valued with a syntax `name value`
+ * Multi-valued with a syntax `name [operator] { value1 value2 ... }`
+
+where the optional *operator* is one of:
+
+ * *all-of* -- The device attribute set must contain all of the specified values for the rule to match.
+ * *one-of* -- The device attribute set must contain at least one of the specified values for the rule to match.
+ * *none-of* -- The device attribute set must not contain any of the specified values for the rule to match.
+ * *equals* -- The device attribute set must contain exactly the same set of values for the rule to match.
+ * *equals-ordered* -- The device attribute set must contain exactly the same set of values in the same order for the rule to match.
+
+If the operator is not specified it is set to *equals*.
+
+List of attributes:
+
+* **id** `usb-device-id`
+:   Match a USB device ID.
+* **id** `[operator] { usb-device-id ... }`
+:   Match a set of USB device IDs.
+* **hash** `"value"`
+:   Match a hash computed from the device attribute values and the USB descriptor data. The hash is computed for every device by USBGuard.
+* **hash** `[operator] { "value" ... }`
+:   Match a set of device hashes.
+* **parent-hash** `"value"`
+:   Match a hash of the parent device.
+* **parent-hash** `[operator] { "value" ... }`
+:   Match a set of parent device hashes.
+* **name** `"device-name"`
+:   Match the USB device name attribute.
+* **name** `[operator] { "device-name" ... }`
+:   Match a set of USB device names.
+* **serial** `"serial-number"`
+:   Match the USB iSerial device attribute.
+* **serial** `[operator] { "serial-number" ... }`
+:   Match a set of USB iSerial device attributes.
+* **via-port** `"port-id"`
+:   Match the USB port through which the device is connected. Note that some systems have unstable port numbering which change after the system reboots or certain kernel modules are reloaded (and maybe in other cases). Use the **parent-hash** attribute if you want to ensure that a device is connected via a specific parent device.
+* **via-port** `[operator] { "port-id" ... }`
+:   Match a set of USB ports.
+* **with-interface** `interface-type`
+:   Match an interface type that the USB device provides.
+* **with-interface** `[operator] { interface-type interface-type ... }`
+:   Match a set of interface types against the set of interfaces that the USB device provides.
+
+The *usb-device-id* is a colon delimited pair in the form **vendor-id:product-id**.
+All USB devices have this ID assigned by the manufacturer and it should uniquely identify a USB product.
+Both **vendor-id** and **product-id** are 16-bit numbers represented in hexadecimal base.
+It's possible to use an asterisk character to match either any device ID `*:*` or any product ID from a specific vendor, e.g. `1234:*`.
+
+The *port-id* value is a platform specific USB port identification.
+On Linux it's in the form of "usbN" in case of a USB controller (more accurately a "root hub") or "bus-port[.port[.port ...]]" (e.g. "1-2", "1-2.1", ...).
+
+The *interface-type* represents a USB interface and should be formatted as three 8-bit numbers in hexadecimal base delimited by a colon character, i.e. *cc:ss:pp*.
+The numbers represent the interface class (*cc*), subclass (*ss*) and protocol (*pp*) as assigned by the link:http://www.usb.org/about[USB-IF].
+See the link:http://www.usb.org/developers/defined_class[list of assigned classes, subclasses and protocols].
+Instead of the subclass and protocol number, you may write an asterisk character (`*`) to match all subclasses or protocols.
+Matching a specific class and a specific protocol is not allowed, i.e. if you use an asterisk as the subclass number, you have to use an asterisk for the protocol too.
+
+=== Conditions
+
+Whether a rule that matches a device will be applied or not can be further restricted using rule conditions.
+If the condition expression is met at the rule evaluation time, then the rule target is applied for the device.
+A condition expression is met if it evaluates to true.
+Otherwise, the rule evaluation continues with the next rule.
+A rule conditions has the following syntax:
+
+ if [!]condition
+ if [operator] { [!]conditionA [!]conditionB ... }
+
+Optionally, an exclamation mark (`!`) can be used to negate the result of a condition.
+
+Interpretation of the set operator:
+
+ * `all-of`: Evaluate to true if all of the specified conditions evaluated to true.
+ * `one-of`: Evaluate to true if one of the specified conditions evaluated to true.
+ * `none-of`: Evaluate to true if none of the specified conditions evaluated to true.
+ * `equals`: Same as `all-of`.
+ * `equals-ordered`: Same as `all-of`.
+
+List of conditions:
+
+ * `localtime(time_range)`: Evaluates to true if the local time is in the specified time range. `time_range` can be written either as `HH:MM[:SS]` or `HH:MM[:SS]-HH:MM[:SS]`.
+ * `allowed-matches(query)`: Evaluates to true if an allowed device matches the specified query. The query uses the rule syntax. **Conditions in the query are not evaluated**.
+ * `rule-applied`: Evaluates to true if the rule currently being evaluated ever matched a device.
+ * `rule-applied(past_duration)`: Evaluates to true if the rule currently being evaluated matched a device in the past duration of time specified by the parameter. `past_duration` can be written as `HH:MM:SS`, `HH:MM`, or `SS`.
+ * `rule-evaluated`: Evaluates to true if the rule currently being evaluated was ever evaluated before.
+ * `rule-evaluated(past_duration)`: Evaluates to true if the rule currently being evaluated was evaluated in the pas duration of time specified by the parameter. `past_duration` can be written as `HH:MM:SS`, `HH:MM`, or `SS`.
+ * `random`: Evaluates to true/false with a probability of `p=0.5`.
+ * `random(p_true)`: Evaluates to true with the specified probability `p_true`.
+ * `true`: Evaluates always to true.
+ * `false`: Evaluates always to false.
+

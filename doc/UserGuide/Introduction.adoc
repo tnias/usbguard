@@ -1,0 +1,26 @@
+Introduction
+============
+:author: Daniel Kopeček
+:email: dnk1618@gmail.com
+:date: 2017-04
+:revision: 1
+
+USBGuard is a software framework for implementing USB device authorization policies (what kind of USB devces are authorized) as well as method of use policies (how a USB device may interact with the system).
+
+Features include:
+
+* Rule-based policy engine based on a simple, human-readable rule language
+* Daemon component with an IPC interface for dynamic interaction and policy enforcement
+* Command line and graphical user interface
+* D-Bus API
+* C++ API including IPC client implemented in a shared library
+
+.Component diagram
+image::images/usbguard-component-diagram.png[Component Diagram]
+
+== Supported Operating Systems
+
+Currently, USBGuard works only on Linux.
+To enforce the user-defined policy, USBGuard uses the USB device authorization feature implemented in the Linux kernel since the year 2007.
+Read the link:https://www.kernel.org/doc/Documentation/usb/authorization.txt[USB authorization] interface documentation for details.
+
