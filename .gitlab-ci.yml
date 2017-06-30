@@ -1,0 +1,19 @@
+image: fedora:latest
+
+Fedora/gcc:
+  script:
+  - dnf install -y git
+  - dnf builddep -y usbguard.spec
+  - ./autogen.sh
+  - ./configure
+  - make -j4
+  - make check
+  tags:
+  - shared
+  except:
+  - tags
+  artifacts:
+    expire_in: 1 week
+    when: on_failure
+    paths:
+      - src/Tests/*.log
