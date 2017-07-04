@@ -17,7 +17,7 @@
 // Authors: Daniel Kopecek <dkopecek@redhat.com>
 //
 #ifdef HAVE_BUILD_CONFIG_H
-#include <build-config.h>
+  #include <build-config.h>
 #endif
 
 #include "Audit.hpp"
@@ -44,13 +44,11 @@ namespace usbguard
   std::string AuditIdentity::toString() const
   {
     std::string identity_string;
-
     identity_string.append("{ uid=");
     identity_string.append(numberToString(_uid));
     identity_string.append(" pid=");
     identity_string.append(numberToString(_pid));
     identity_string.append(" }");
-
     return identity_string;
   }
 
@@ -58,7 +56,6 @@ namespace usbguard
     : _confirmed(false),
       _identity(identity)
   {
-
   }
 
   AuditEvent::AuditEvent(AuditEvent&& event)
@@ -107,14 +104,13 @@ namespace usbguard
   Audit::Audit(const AuditIdentity& identity)
     : _identity(identity)
   {
-
   }
 
   AuditEvent Audit::policyEvent(std::shared_ptr<Rule> rule, Policy::EventType event)
   {
     return policyEvent(_identity, rule, event);
   }
-  
+
   AuditEvent Audit::policyEvent(std::shared_ptr<Rule> new_rule, std::shared_ptr<Rule> old_rule)
   {
     return policyEvent(_identity, new_rule, old_rule);
@@ -134,7 +130,7 @@ namespace usbguard
   {
     return deviceEvent(_identity, device, event);
   }
-  
+
   AuditEvent Audit::deviceEvent(std::shared_ptr<Device> new_device, std::shared_ptr<Device> old_device)
   {
     return deviceEvent(_identity, new_device, old_device);
@@ -144,17 +140,13 @@ namespace usbguard
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Policy.";
     message += Policy::eventTypeToString(event);
-
     message += " rule.id=";
     message += numberToString(rule->getRuleID());
-
     message += " rule='";
     message += rule->toString();
     message += "'";
-
     return audit_event;
   }
 
@@ -162,21 +154,16 @@ namespace usbguard
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Policy.";
     message += Policy::eventTypeToString(Policy::EventType::Update);
-
     message += " rule.id=";
     message += numberToString(old_rule->getRuleID());
-
     message += " rule.old='";
     message += old_rule->toString();
     message += "'";
-    
     message += " rule.new='";
     message += new_rule->toString();
     message += "'";
-
     return audit_event;
   }
 
@@ -184,38 +171,30 @@ namespace usbguard
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Policy.Device.";
     message += Policy::eventTypeToString(event);
-
     message += " target=";
     message += Rule::targetToString(device->getTarget());
-
     message += " device='";
     message += device->getDeviceRule()->toString();
     message += "'";
-
     return audit_event;
   }
 
-  AuditEvent Audit::policyEvent(const AuditIdentity& identity, std::shared_ptr<Device> device, Rule::Target old_target, Rule::Target new_target)
+  AuditEvent Audit::policyEvent(const AuditIdentity& identity, std::shared_ptr<Device> device, Rule::Target old_target,
+    Rule::Target new_target)
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Policy.Device.";
     message += Policy::eventTypeToString(Policy::EventType::Update);
-    
     message += " target.old=";
     message += Rule::targetToString(old_target);
-
     message += " target.new=";
     message += Rule::targetToString(new_target);
-    
     message += " device='";
     message += device->getDeviceRule()->toString();
     message += "'";
-
     return audit_event;
   }
 
@@ -223,33 +202,27 @@ namespace usbguard
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Device.";
     message += DeviceManager::eventTypeToString(event);
-
     message += " device='";
     message += device->getDeviceRule()->toString();
     message += "'";
-
     return audit_event;
   }
 
-  AuditEvent Audit::deviceEvent(const AuditIdentity& identity, std::shared_ptr<Device> new_device, std::shared_ptr<Device> old_device)
+  AuditEvent Audit::deviceEvent(const AuditIdentity& identity, std::shared_ptr<Device> new_device,
+    std::shared_ptr<Device> old_device)
   {
     AuditEvent audit_event(identity);
     auto& message = audit_event.refMessage();
-
     message += "type=Device.";
     message += DeviceManager::eventTypeToString(DeviceManager::EventType::Update);
-    
     message += " device.old='";
     message += old_device->getDeviceRule()->toString();
     message += "'";
-
     message += " device.new='";
     message += new_device->getDeviceRule()->toString();
     message += "'";
-
     return audit_event;
   }
 } /* namespace usbguard */

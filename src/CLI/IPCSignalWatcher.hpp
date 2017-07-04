@@ -18,7 +18,7 @@
 //
 #pragma once
 #ifdef HAVE_BUILD_CONFIG_H
-#include <build-config.h>
+  #include <build-config.h>
 #endif
 
 #include "usbguard/IPCClient.hpp"
@@ -32,15 +32,15 @@ namespace usbguard
     void IPCDisconnected(bool exception_initiated, const IPCException& exception) override;
 
     void DevicePresenceChanged(uint32_t id,
-                               DeviceManager::EventType event,
-                               Rule::Target target,
-                               const std::string& device_rule) override;
+      DeviceManager::EventType event,
+      Rule::Target target,
+      const std::string& device_rule) override;
 
     void DevicePolicyChanged(uint32_t id,
-                             Rule::Target target_old,
-                             Rule::Target target_new,
-                             const std::string& device_rule,
-                             uint32_t rule_id) override;
+      Rule::Target target_old,
+      Rule::Target target_new,
+      const std::string& device_rule,
+      uint32_t rule_id) override;
   };
 } /* namespace usbguard */
 

@@ -17,7 +17,7 @@
 // Authors: Daniel Kopecek <dkopecek@redhat.com>
 //
 #ifdef HAVE_BUILD_CONFIG_H
-#include <build-config.h>
+  #include <build-config.h>
 #endif
 
 #include "Daemon.hpp"
@@ -62,7 +62,7 @@ namespace usbguard
     "AuditFilePath"
   };
 
-  static const std::vector<std::pair<std::string,Daemon::DevicePolicyMethod> > device_policy_method_strings = {
+  static const std::vector<std::pair<std::string, Daemon::DevicePolicyMethod>> device_policy_method_strings = {
     { "allow", Daemon::DevicePolicyMethod::Allow },
     { "block", Daemon::DevicePolicyMethod::Block },
     { "reject", Daemon::DevicePolicyMethod::Reject },
@@ -74,9 +74,10 @@ namespace usbguard
   {
     for (auto device_policy_method_string : device_policy_method_strings) {
       if (device_policy_method_string.first == policy_string) {
-	return device_policy_method_string.second;
+        return device_policy_method_string.second;
       }
     }
+
     throw Exception("DevicePolicyMethod", policy_string, "invalid policy method string");
   }
 
@@ -84,9 +85,10 @@ namespace usbguard
   {
     for (auto device_policy_method_string : device_policy_method_strings) {
       if (device_policy_method_string.second == policy) {
-	return device_policy_method_string.first;
+        return device_policy_method_string.first;
       }
     }
+
     throw USBGUARD_BUG("Invalid device policy method value");
   }
 
@@ -97,19 +99,18 @@ namespace usbguard
     sigset_t signal_set;
     sigfillset(&signal_set);
 
-    for (int del_signum : { SIGSEGV, SIGABRT, SIGKILL, SIGILL }) {
+    for (int del_signum : {
+        SIGSEGV, SIGABRT, SIGKILL, SIGILL
+      }) {
       sigdelset(&signal_set, del_signum);
     }
-
     USBGUARD_SYSCALL_THROW("Daemon initialization",
       (errno = pthread_sigmask(SIG_BLOCK, &signal_set, nullptr)) != 0);
-
     _device_manager_backend = "udev";
     _implicit_policy_target = Rule::Target::Block;
     _present_device_policy_method = DevicePolicyMethod::ApplyPolicy;
     _present_controller_policy_method = DevicePolicyMethod::Keep;
     _inserted_device_policy_method = DevicePolicyMethod::ApplyPolicy;
-
     _device_rules_with_port = false;
     _restore_controller_device_state = false;
   }
@@ -127,19 +128,21 @@ namespace usbguard
     /* RuleFile */
     if (_config.hasSettingValue("RuleFile")) {
       const std::string& rule_file = _config.getSettingValue("RuleFile");
+
       try {
-	loadRules(rule_file);
+        loadRules(rule_file);
       }
-      catch(const RuleParserError& ex) {
+      catch (const RuleParserError& ex) {
         throw Exception("Configuration", rule_file, ex.hint());
       }
-      catch(const std::exception& ex) {
+      catch (const std::exception& ex) {
         throw Exception("Configuration", rule_file, ex.what());
       }
-      catch(...) {
+      catch (...) {
         throw Exception("Configuration", rule_file, "unknown exception");
       }
-    } else {
+    }
+    else {
       USBGUARD_LOG(Warning) << "RuleFile not set; Modification of the permanent policy won't be possible.";
     }
 
@@ -173,7 +176,7 @@ namespace usbguard
 
     /* IPCAllowedUsers */
     if (_config.hasSettingValue("IPCAllowedUsers")) {
-      const std::string users_value = _config.getSettingValue("IPCAllowedUsers"); 
+      const std::string users_value = _config.getSettingValue("IPCAllowedUsers");
       std::vector<std::string> users;
       tokenizeString(users_value, users, " ", /*trim_empty=*/true);
       USBGUARD_LOG(Debug) << "Setting IPCAllowedUsers to { " << users_value << " }";
@@ -185,7 +188,7 @@ namespace usbguard
 
     /* IPCAllowedGroups */
     if (_config.hasSettingValue("IPCAllowedGroups")) {
-      const std::string groups_value =_config.getSettingValue("IPCAllowedGroups"); 
+      const std::string groups_value =_config.getSettingValue("IPCAllowedGroups");
       std::vector<std::string> groups;
       tokenizeString(groups_value, groups, " ", /*trim_empty=*/true);
       USBGUARD_LOG(Debug) << "Setting IPCAllowedGroups to { " << groups_value << " }";
@@ -199,6 +202,7 @@ namespace usbguard
     if (_config.hasSettingValue("DeviceRulesWithPort")) {
       const std::string value = _config.getSettingValue("DeviceRulesWithPort");
       USBGUARD_LOG(Debug) << "Setting DeviceRulesWithPort to " << value;
+
       if (value == "true") {
         _device_rules_with_port = true;
       }
@@ -260,16 +264,14 @@ namespace usbguard
   {
     USBGUARD_LOG(Info) << "Loading IPC access control files at " << path;
     loadFiles(path,
-      [](const std::string& path, const struct dirent * dir_entry)
-      {
-        (void)dir_entry;
-        return filenameFromPath(path, /*include_extension=*/true);
-      }
-      ,
-      [this](const std::string& basename, const std::string& fullpath)
-      {
-        return loadIPCAccessControlFile(basename, fullpath);
-      });
+    [](const std::string& path, const struct dirent * dir_entry) {
+      (void)dir_entry;
+      return filenameFromPath(path, /*include_extension=*/true);
+    }
+    ,
+    [this](const std::string& basename, const std::string& fullpath) {
+      return loadIPCAccessControlFile(basename, fullpath);
+    });
   }
 
   void Daemon::checkIPCAccessControlName(const std::string& name)
@@ -277,17 +279,15 @@ namespace usbguard
     IPCServer::checkAccessControlName(name);
   }
 
-  void Daemon::parseIPCAccessControlFilename(const std::string& basename, std::string * const ptr_user, std::string * const ptr_group)
+  void Daemon::parseIPCAccessControlFilename(const std::string& basename, std::string* const ptr_user,
+    std::string* const ptr_group)
   {
     const auto ug_separator = basename.find_first_of(":");
     const bool has_group = ug_separator != std::string::npos;
-
     const std::string user = basename.substr(0, ug_separator);
     const std::string group = has_group ? basename.substr(ug_separator + 1) : std::string();
-
     checkIPCAccessControlName(user);
     checkIPCAccessControlName(group);
-
     *ptr_user = user;
     *ptr_group = group;
   }
@@ -295,7 +295,6 @@ namespace usbguard
   bool Daemon::loadIPCAccessControlFile(const std::string& basename, const std::string& fullpath)
   {
     USBGUARD_LOG(Info) << "Loading IPC access control file " << fullpath;
-
     std::string user;
     std::string group;
     IPCServer::AccessControl ac;
@@ -303,7 +302,7 @@ namespace usbguard
     try {
       parseIPCAccessControlFilename(basename, &user, &group);
     }
-    catch(...) {
+    catch (...) {
       USBGUARD_LOG(Warning) << "Ignoring access control file because of malformed name: " << basename;
       return false;
     }
@@ -312,7 +311,7 @@ namespace usbguard
       std::ifstream ac_stream(fullpath);
       ac.load(ac_stream);
     }
-    catch(...) {
+    catch (...) {
       USBGUARD_LOG(Warning) << "Failed to load IPC access control file " << fullpath;
       return false;
     }
@@ -320,6 +319,7 @@ namespace usbguard
     if (!user.empty()) {
       addIPCAllowedUser(user, ac);
     }
+
     if (!group.empty()) {
       addIPCAllowedGroup(group, ac);
     }
@@ -349,33 +349,32 @@ namespace usbguard
   void Daemon::setInsertedDevicePolicyMethod(DevicePolicyMethod policy)
   {
     USBGUARD_LOG(Debug) << "Setting InsertedDevicePolicy to " << devicePolicyMethodToString(policy);
-    switch(policy) {
-      case DevicePolicyMethod::ApplyPolicy:
-      case DevicePolicyMethod::Block:
-      case DevicePolicyMethod::Reject:
-        _inserted_device_policy_method = policy;
-        break;
-      case DevicePolicyMethod::Keep:
-      case DevicePolicyMethod::Allow:
-      default:
-        throw Exception("setInsertedDevicePolicyMethod", devicePolicyMethodToString(policy), "invalid policy method");
+
+    switch (policy) {
+    case DevicePolicyMethod::ApplyPolicy:
+    case DevicePolicyMethod::Block:
+    case DevicePolicyMethod::Reject:
+      _inserted_device_policy_method = policy;
+      break;
+
+    case DevicePolicyMethod::Keep:
+    case DevicePolicyMethod::Allow:
+    default:
+      throw Exception("setInsertedDevicePolicyMethod", devicePolicyMethodToString(policy), "invalid policy method");
     }
   }
 
   void Daemon::run()
   {
     USBGUARD_LOG(Trace) << "Entering main loop";
-   
     _dm->start();
     _dm->scan();
     IPCServer::start();
-
     sigset_t signal_set;
     sigemptyset(&signal_set);
     sigaddset(&signal_set, SIGINT);
     sigaddset(&signal_set, SIGTERM);
     sigaddset(&signal_set, SIGSYS);
-
     bool exit_loop = false;
 
     do {
@@ -387,20 +386,23 @@ namespace usbguard
         break;
       }
 
-      switch(signal_num) {
-        case SIGTERM:
-        case SIGINT:
-          USBGUARD_LOG(Info) << "Received SIGTERM/SIGINT. Shutting down.";
-          exit_loop = true;
-          break;
-        case SIGSYS:
-          USBGUARD_LOG(Error) << "Received SIGSYS: Seccomp whitelist violation!";
-          exit_loop = false;
-          break;
-        default:
-          USBGUARD_LOG(Warning) << "Received signal " << signal_num << ". Ignoring!";
+      switch (signal_num) {
+      case SIGTERM:
+      case SIGINT:
+        USBGUARD_LOG(Info) << "Received SIGTERM/SIGINT. Shutting down.";
+        exit_loop = true;
+        break;
+
+      case SIGSYS:
+        USBGUARD_LOG(Error) << "Received SIGSYS: Seccomp whitelist violation!";
+        exit_loop = false;
+        break;
+
+      default:
+        USBGUARD_LOG(Warning) << "Received signal " << signal_num << ". Ignoring!";
       }
-    } while(!exit_loop);
+    }
+    while (!exit_loop);
 
     IPCServer::stop();
     _dm->stop();
@@ -425,18 +427,17 @@ namespace usbguard
    * Return the id of the updated or new rule.
    */
   uint32_t Daemon::upsertRule(const std::string& match_spec,
-                              const std::string& rule_spec,
-                              const bool parent_insensitive)
+    const std::string& rule_spec,
+    const bool parent_insensitive)
   {
     USBGUARD_LOG(Trace) << "entry:"
-                        << " match_spec=" << match_spec
-                        << " rule_spec=" << rule_spec
-                        << " parent_insensitive=" << parent_insensitive;
-
+      << " match_spec=" << match_spec
+      << " rule_spec=" << rule_spec
+      << " parent_insensitive=" << parent_insensitive;
     const Rule match_rule = Rule::fromString(match_spec);
     const Rule new_rule = Rule::fromString(rule_spec);
-
     const uint32_t id = _ruleset.upsertRule(match_rule, new_rule, parent_insensitive);
+
     if (_config.hasSettingValue("RuleFile")) {
       _ruleset.save(_config.getSettingValue("RuleFile"));
     }
@@ -455,6 +456,7 @@ namespace usbguard
       setInsertedDevicePolicyMethod(devicePolicyMethodFromString(value));
       return previous_value;
     }
+
     throw Exception("setParameter", name, "unknown parameter");
   }
 
@@ -463,23 +465,24 @@ namespace usbguard
     if (name == "InsertedDevicePolicy") {
       return devicePolicyMethodToString(_inserted_device_policy_method);
     }
+
     throw Exception("getParameter", name, "unknown parameter");
   }
 
   uint32_t Daemon::appendRule(const std::string& rule_spec,
-			      uint32_t parent_id)
+    uint32_t parent_id)
   {
     USBGUARD_LOG(Trace) << "entry:"
-                        << " rule_spec=" << rule_spec
-                        << " parent_id=" << parent_id;
-
+      << " rule_spec=" << rule_spec
+      << " parent_id=" << parent_id;
     const Rule rule = Rule::fromString(rule_spec);
     /* TODO: reevaluate the firewall rules for all active devices */
-
     const uint32_t id = _ruleset.appendRule(rule, parent_id);
+
     if (_config.hasSettingValue("RuleFile")) {
       _ruleset.save(_config.getSettingValue("RuleFile"));
     }
+
     USBGUARD_LOG(Trace) << "return: id=" << id;
     return id;
   }
@@ -488,6 +491,7 @@ namespace usbguard
   {
     USBGUARD_LOG(Trace) << "id=" << id;
     _ruleset.removeRule(id);
+
     if (_config.hasSettingValue("RuleFile")) {
       _ruleset.save(_config.getSettingValue("RuleFile"));
     }
@@ -495,17 +499,16 @@ namespace usbguard
 
   const RuleSet Daemon::listRules(const std::string& query)
   {
-    USBGUARD_LOG(Trace) << "entry: query=" << query; 
+    USBGUARD_LOG(Trace) << "entry: query=" << query;
     return _ruleset;
   }
 
   uint32_t Daemon::applyDevicePolicy(uint32_t id, Rule::Target target, bool permanent)
   {
     USBGUARD_LOG(Trace) << "entry:"
-                        << " id=" << id
-                        << " target=" << Rule::targetToString(target)
-                        << " permanent=" << permanent;
-
+      << " id=" << id
+      << " target=" << Rule::targetToString(target)
+      << " permanent=" << permanent;
     std::shared_ptr<Device> device = _dm->getDevice(id);
     std::shared_ptr<Rule> rule;
 
@@ -519,44 +522,41 @@ namespace usbguard
 
     dmApplyDevicePolicy(device, rule);
     USBGUARD_LOG(Trace) << "return:"
-                        << " id=" << rule->getRuleID();
-
+      << " id=" << rule->getRuleID();
     return rule->getRuleID();
   }
 
   void Daemon::dmHookDeviceEvent(DeviceManager::EventType event, std::shared_ptr<Device> device)
   {
     USBGUARD_LOG(Trace) << "event=" << DeviceManager::eventTypeToString(event)
-                        << " device_ptr=" << device.get();
-
+      << " device_ptr=" << device.get();
     auto audit_event = Audit::deviceEvent(_audit_identity, device, event);
-
     std::shared_ptr<const Rule> device_rule = \
       device->getDeviceRule(/*with_port*/true,
-                            /*with_parent_hash=*/true);
-
+        /*with_parent_hash=*/true);
     DevicePresenceChanged(device->getID(),
-                          event,
-                          device->getTarget(),
-                          device_rule->toString());
-
+      event,
+      device->getTarget(),
+      device_rule->toString());
     audit_event.success();
-
     std::shared_ptr<Rule> policy_rule = nullptr;
 
-    switch(event) {
-      case DeviceManager::EventType::Present:
-        policy_rule = getPresentDevicePolicyRule(device);
-        break;
-      case DeviceManager::EventType::Insert:
-      case DeviceManager::EventType::Update:
-        policy_rule = getInsertedDevicePolicyRule(device);
-        break;
-      case DeviceManager::EventType::Remove:
-        /* NOOP */
-        return;
-      default:
-        throw USBGUARD_BUG("Unknown DeviceManager event type");
+    switch (event) {
+    case DeviceManager::EventType::Present:
+      policy_rule = getPresentDevicePolicyRule(device);
+      break;
+
+    case DeviceManager::EventType::Insert:
+    case DeviceManager::EventType::Update:
+      policy_rule = getInsertedDevicePolicyRule(device);
+      break;
+
+    case DeviceManager::EventType::Remove:
+      /* NOOP */
+      return;
+
+    default:
+      throw USBGUARD_BUG("Unknown DeviceManager event type");
     }
 
     dmApplyDevicePolicy(device, policy_rule);
@@ -570,23 +570,20 @@ namespace usbguard
   void Daemon::dmApplyDevicePolicy(std::shared_ptr<Device> device, std::shared_ptr<Rule> matched_rule)
   {
     USBGUARD_LOG(Trace) << "device_ptr=" << device.get()
-                        << " matched_rule_ptr=" << matched_rule.get();
-
+      << " matched_rule_ptr=" << matched_rule.get();
     auto audit_event = Audit::policyEvent(_audit_identity,
         device, device->getTarget(), matched_rule->getTarget());
-
     const Rule::Target target_old = device->getTarget();
     std::shared_ptr<Device> device_post = \
       _dm->applyDevicePolicy(device->getID(),
-                             matched_rule->getTarget());
-
+        matched_rule->getTarget());
     const bool target_changed = target_old != device_post->getTarget();
- 
+
     if (target_changed || matched_rule->getRuleID() == Rule::ImplicitID) {
       if (target_changed) {
         USBGUARD_LOG(Debug) << "Device target changed:"
-                            << " old=" << Rule::targetToString(target_old)
-                            << " new=" << Rule::targetToString(device_post->getTarget());
+          << " old=" << Rule::targetToString(target_old)
+          << " new=" << Rule::targetToString(device_post->getTarget());
       }
       else {
         USBGUARD_LOG(Debug) << "Implicit rule matched";
@@ -594,13 +591,12 @@ namespace usbguard
 
       std::shared_ptr<const Rule> device_rule = \
         device_post->getDeviceRule(/*with_port=*/true,
-                                   /*with_parent_hash=*/true);
-
+          /*with_parent_hash=*/true);
       DevicePolicyChanged(device->getID(),
-                          target_old,
-                          device_post->getTarget(),
-                          device_rule->toString(),
-                          matched_rule->getRuleID());
+        target_old,
+        device_post->getTarget(),
+        device_rule->toString(),
+        matched_rule->getRuleID());
     }
 
     matched_rule->updateMetaDataCounters(/*applied=*/true);
@@ -610,30 +606,31 @@ namespace usbguard
   std::shared_ptr<Rule> Daemon::getInsertedDevicePolicyRule(std::shared_ptr<Device> device)
   {
     USBGUARD_LOG(Trace) << "device_ptr=" << device.get();
-
     std::shared_ptr<const Rule> device_rule = \
       device->getDeviceRule(/*with_port=*/true,
-                            /*with_parent_hash=*/true,
-                            /*match_rule=*/true);
-
+        /*with_parent_hash=*/true,
+        /*match_rule=*/true);
     Rule::Target target = Rule::Target::Invalid;
     std::shared_ptr<Rule> policy_rule;
     const DevicePolicyMethod policy_method = _inserted_device_policy_method;
 
     switch (policy_method) {
-      case DevicePolicyMethod::Block:
-        target = Rule::Target::Block;
-        break;
-      case DevicePolicyMethod::Reject:
-        target = Rule::Target::Reject;
-        break;
-      case DevicePolicyMethod::ApplyPolicy:
-        policy_rule = _ruleset.getFirstMatchingRule(device_rule);
-        break;
-      case DevicePolicyMethod::Allow:
-      case DevicePolicyMethod::Keep:
-      default:
-        throw USBGUARD_BUG("Invalid DevicePolicyMethod value");
+    case DevicePolicyMethod::Block:
+      target = Rule::Target::Block;
+      break;
+
+    case DevicePolicyMethod::Reject:
+      target = Rule::Target::Reject;
+      break;
+
+    case DevicePolicyMethod::ApplyPolicy:
+      policy_rule = _ruleset.getFirstMatchingRule(device_rule);
+      break;
+
+    case DevicePolicyMethod::Allow:
+    case DevicePolicyMethod::Keep:
+    default:
+      throw USBGUARD_BUG("Invalid DevicePolicyMethod value");
     }
 
     if (policy_rule == nullptr) {
@@ -648,18 +645,14 @@ namespace usbguard
   std::shared_ptr<Rule> Daemon::getPresentDevicePolicyRule(std::shared_ptr<Device> device)
   {
     USBGUARD_LOG(Trace) << "entry: device_ptr=" << device.get();
-
     std::shared_ptr<const Rule> device_rule = \
       device->getDeviceRule(/*with_port=*/true,
-                            /*with_parent_hash=*/true,
-                            /*match_rule=*/true);
-
+        /*with_parent_hash=*/true,
+        /*match_rule=*/true);
     USBGUARD_LOG(Debug) << "device_rule=" << device_rule->toString();
     USBGUARD_LOG(Debug) << "isController=" << device->isController();
-
     const DevicePolicyMethod policy_method = \
       device->isController() ? _present_controller_policy_method : _present_device_policy_method;
-
     Rule::Target target = Rule::Target::Invalid;
     std::shared_ptr<Rule> matched_rule = nullptr;
 
@@ -667,19 +660,24 @@ namespace usbguard
     case DevicePolicyMethod::Allow:
       target = Rule::Target::Allow;
       break;
+
     case DevicePolicyMethod::Block:
       target = Rule::Target::Block;
       break;
+
     case DevicePolicyMethod::Reject:
       target = Rule::Target::Reject;
       break;
+
     case DevicePolicyMethod::Keep:
       target = device->getTarget();
       break;
+
     case DevicePolicyMethod::ApplyPolicy:
       matched_rule = _ruleset.getFirstMatchingRule(device_rule);
       target = matched_rule->getTarget();
       break;
+
     default:
       throw USBGUARD_BUG("Invalid DevicePolicyMethod value");
     }
@@ -691,8 +689,7 @@ namespace usbguard
     }
 
     USBGUARD_LOG(Trace) << "return:"
-                        << " matched_rule=" << matched_rule->toString();
-
+      << " matched_rule=" << matched_rule->toString();
     return matched_rule;
   }
 
@@ -704,8 +701,7 @@ namespace usbguard
   const std::vector<Rule> Daemon::listDevices(const std::string& query)
   {
     USBGUARD_LOG(Trace) << "entry:"
-                        << " query=" << query;
-
+      << " query=" << query;
     std::vector<Rule> device_rules;
     const Rule query_rule = Rule::fromString(query);
 
@@ -714,77 +710,71 @@ namespace usbguard
     }
 
     USBGUARD_LOG(Trace) << "return:"
-                        << " count(device_rules)=" << device_rules.size();
-
+      << " count(device_rules)=" << device_rules.size();
     return device_rules;
   }
 
   std::shared_ptr<Rule> Daemon::upsertDeviceRule(uint32_t id, Rule::Target target)
   {
     USBGUARD_LOG(Trace) << "entry:"
-                        << "id=" << id
-                        << "target=" << Rule::targetToString(target);
-
+      << "id=" << id
+      << "target=" << Rule::targetToString(target);
     std::shared_ptr<Device> device = _dm->getDevice(id);
-
     bool with_port = true && _device_rules_with_port;
     bool with_parent_hash = true;
 
     /*
      * Generate a port specific or agnostic rule depending on the target
      */
-    switch(target) {
-      case Rule::Target::Allow:
-        with_port = true && with_port;
-        with_parent_hash = true;
-        break;
-      case Rule::Target::Block:
-        /*
-         * Block the device using a port agnostic rule, so that the same device
-         * inserted in a different port is still blocked. Note that allowDevice
-         * generates a port specific rule and the same device won't be allowed
-         * when inserted in a different port.
-         */
-        with_port = false;
-        with_parent_hash = false;
-        break;
-      case Rule::Target::Reject:
-        /*
-         * Reject the device using a port agnostic port. When we explicitly
-         * reject a device, we don't want to reject it again when the same
-         * device is inserted in a different port.
-         */
-        with_port = false;
-        with_parent_hash = false;
-        break;
-      case Rule::Target::Invalid:
-      case Rule::Target::Unknown:
-      case Rule::Target::Match:
-      case Rule::Target::Device:
-      default:
-        throw Exception("upsertDeviceRule", "device rule", "Invalid target");
+    switch (target) {
+    case Rule::Target::Allow:
+      with_port = true && with_port;
+      with_parent_hash = true;
+      break;
+
+    case Rule::Target::Block:
+      /*
+       * Block the device using a port agnostic rule, so that the same device
+       * inserted in a different port is still blocked. Note that allowDevice
+       * generates a port specific rule and the same device won't be allowed
+       * when inserted in a different port.
+       */
+      with_port = false;
+      with_parent_hash = false;
+      break;
+
+    case Rule::Target::Reject:
+      /*
+       * Reject the device using a port agnostic port. When we explicitly
+       * reject a device, we don't want to reject it again when the same
+       * device is inserted in a different port.
+       */
+      with_port = false;
+      with_parent_hash = false;
+      break;
+
+    case Rule::Target::Invalid:
+    case Rule::Target::Unknown:
+    case Rule::Target::Match:
+    case Rule::Target::Device:
+    default:
+      throw Exception("upsertDeviceRule", "device rule", "Invalid target");
     }
 
     /* Generate a match rule for upsert */
     std::shared_ptr<Rule> match_rule = device->getDeviceRule(false, false, /*match_rule=*/true);
     const std::string match_spec = match_rule->toString();
-
     USBGUARD_LOG(Debug) << "match_spec=" << match_spec;
-
     /* Generate new device rule */
-    std::shared_ptr<Rule> device_rule = device->getDeviceRule(with_port, with_parent_hash); 
+    std::shared_ptr<Rule> device_rule = device->getDeviceRule(with_port, with_parent_hash);
     device_rule->setTarget(target);
     const std::string rule_spec = device_rule->toString();
-
     USBGUARD_LOG(Debug) << "rule_spec=" << rule_spec;
-
     /* Upsert */
     const uint32_t rule_id = upsertRule(match_spec, rule_spec, /*parent_insensitive=*/true);
     auto upsert_rule = _ruleset.getRule(rule_id);
-
     USBGUARD_LOG(Trace) << "return:"
-                        << " upsert_rule=" << upsert_rule->toString();
-
+      << " upsert_rule=" << upsert_rule->toString();
     return upsert_rule;
   }
 

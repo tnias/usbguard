@@ -44,7 +44,8 @@ EXTRA_DIST=\
 	$(top_srcdir)/src/Tests/Source/CheckScripts/spell-check.sh \
 	$(top_srcdir)/src/Tests/Source/CheckScripts/spell-check.rws \
 	$(top_srcdir)/src/Tests/Source/CheckScripts/private-with-build-config.sh \
-	$(top_srcdir)/src/Tests/Source/CheckScripts/public-without-build-config.sh
+	$(top_srcdir)/src/Tests/Source/CheckScripts/public-without-build-config.sh \
+	$(top_srcdir)/src/Tests/Source/CheckScripts/code-style.sh
 
 LOG_DRIVER=\
 	$(top_srcdir)/src/Tests/test-driver

@@ -17,7 +17,7 @@
 // Authors: Daniel Kopecek <dkopecek@redhat.com>
 //
 #ifdef HAVE_BUILD_CONFIG_H
-#include <build-config.h>
+  #include <build-config.h>
 #endif
 
 #include <iostream>
@@ -33,16 +33,18 @@ namespace usbguard
   void IPCSignalWatcher::IPCDisconnected(bool exception_initiated, const IPCException& exception)
   {
     std::cout << "[IPC] Disconnected: exception_initiated=" << exception_initiated;
+
     if (exception_initiated) {
       std::cout << " message=" << exception.message();
     }
+
     std::cout << std::endl;
   }
 
   void IPCSignalWatcher::DevicePresenceChanged(uint32_t id,
-                                               DeviceManager::EventType event,
-                                               Rule::Target target,
-                                               const std::string& device_rule)
+    DeviceManager::EventType event,
+    Rule::Target target,
+    const std::string& device_rule)
   {
     std::cout << "[device] PresenceChanged: id=" << id << std::endl;
     std::cout << " event=" << DeviceManager::eventTypeToString(event) << std::endl;
@@ -51,10 +53,10 @@ namespace usbguard
   }
 
   void IPCSignalWatcher::DevicePolicyChanged(uint32_t id,
-                                             Rule::Target target_old,
-                                             Rule::Target target_new,
-                                             const std::string& device_rule,
-                                             uint32_t rule_id)
+    Rule::Target target_old,
+    Rule::Target target_new,
+    const std::string& device_rule,
+    uint32_t rule_id)
   {
     std::cout << "[device] PolicyChanged: id=" << id << std::endl;
     std::cout << " target_old=" << Rule::targetToString(target_old) << std::endl;

@@ -17,7 +17,7 @@
 // Authors: Daniel Kopecek <dkopecek@redhat.com>
 //
 #ifdef HAVE_BUILD_CONFIG_H
-#include <build-config.h>
+  #include <build-config.h>
 #endif
 
 #include "usbguard/Logger.hpp"
@@ -46,14 +46,17 @@ namespace usbguard
   {
     const ::pid_t pid = fork();
 
-    switch(pid) {
+    switch (pid) {
     case  0: /* child */
       break;
+
     case -1: /* error */
       ::exit(EXIT_FAILURE);
+
     default: /* parent */
       ::exit(EXIT_SUCCESS);
     }
+
     //
     // Decouple from parent environment
     // - chdir to /
@@ -66,28 +69,37 @@ namespace usbguard
     if (::chdir("/") != 0) {
       ::exit(EXIT_FAILURE);
     }
+
     const ::pid_t sid = ::setsid();
+
     if (sid != 0) {
       ::exit(EXIT_FAILURE);
     }
+
     ::umask(::umask(077)|022);
     struct rlimit rlim;
+
     if (::getrlimit(RLIMIT_NOFILE, &rlim) != 0) {
       ::exit(EXIT_FAILURE);
     }
+
     const int maxfd = (rlim.rlim_max == RLIM_INFINITY ? 1024 : rlim.rlim_max);
+
     for (int fd = 0; fd < maxfd; ++fd) {
       ::close(fd);
     }
+
     return;
   }
 
   bool writePID(const std::string& filepath)
   {
     std::ofstream pidstream(filepath, std::ios_base::trunc);
+
     if (!pidstream) {
       return false;
     }
+
     pidstream << numberToString(getpid()) << std::endl;
     return true;
   }
@@ -110,21 +122,24 @@ namespace usbguard
 
     for (int fd = 0; fd < maxfd; ++fd) {
       if (fd == nullfd) {
-	// Don't close our /dev/null fd
-	continue;
+        // Don't close our /dev/null fd
+        continue;
       }
-      switch(fd) {
+
+      switch (fd) {
       case STDERR_FILENO:
       case STDOUT_FILENO:
       case STDIN_FILENO:
-	// Redirect the standard descriptors to /dev/null
-	::dup2(nullfd, fd);
-	break;
+        // Redirect the standard descriptors to /dev/null
+        ::dup2(nullfd, fd);
+        break;
+
       default:
-	// Close everything else
-	(void)::close(fd);
+        // Close everything else
+        (void)::close(fd);
       }
     }
+
     (void)::close(nullfd);
 
     if (args.size() > 1024) {
@@ -137,27 +152,27 @@ namespace usbguard
     // +1 ... for argv[0]
     // +1 ... for nullptr termination of the array
     //
-    char ** const args_cstr = (char **)(::alloca(sizeof(const char *) * (args.size() + 2)));
+    char** const args_cstr = (char**)(::alloca(sizeof(const char*) * (args.size() + 2)));
     unsigned int i;
+    args_cstr[0] = const_cast<char*>(path.c_str());
 
-    args_cstr[0] = const_cast<char *>(path.c_str());
     for (i = 0; i < args.size(); ++i) {
-      args_cstr[1+i] = const_cast<char *>(args[i].c_str());
+      args_cstr[1+i] = const_cast<char*>(args[i].c_str());
     }
-    args_cstr[1+i] = nullptr;
 
+    args_cstr[1+i] = nullptr;
     // TODO: Reset environment?
     (void)::execv(path.c_str(), args_cstr);
   }
 
-  int runCommand(const char * const path, const char * const arg1, const int timeout_secs)
+  int runCommand(const char* const path, const char* const arg1, const int timeout_secs)
   {
     std::vector<std::string> args;
     args.push_back(arg1);
     return runCommand(path, args, timeout_secs);
   }
 
-  int runCommand(const char * const path, const char * const arg1, const char * const arg2, const int timeout_secs)
+  int runCommand(const char* const path, const char* const arg1, const char* const arg2, const int timeout_secs)
   {
     std::vector<std::string> args;
     args.push_back(arg1);
@@ -169,7 +184,6 @@ namespace usbguard
   {
     int retval = 0, status = 0;
     bool timedout = false;
-
     const pid_t child_pid = ::fork();
 
     switch (child_pid) {
@@ -177,10 +191,12 @@ namespace usbguard
       // Child
       runCommandExecChild(path, args);
       ::_exit(EXIT_FAILURE);
+
     case -1:
     default:
       break;
     }
+
     // Parent - wait for the child to exit (up to timeout seconds)
     int waitpid_time_usec = timeout_secs * 1000 * 1000;
 
@@ -188,24 +204,27 @@ namespace usbguard
       const pid_t waitpid_retval = ::waitpid(child_pid, &status, WNOHANG);
       timedout = false;
 
-      switch(waitpid_retval) {
+      switch (waitpid_retval) {
       case 0: // Not exited yet; Sleep & retry
-	timedout = true;
-	waitpid_time_usec -= 500;
-	::usleep(500);
-	continue;
+        timedout = true;
+        waitpid_time_usec -= 500;
+        ::usleep(500);
+        continue;
+
       case -1: // Error
-	retval = -1;
-	break;
+        retval = -1;
+        break;
+
       default:
-	if (waitpid_retval == child_pid) {
-	  // Child exited
-	  retval = WEXITSTATUS(status);
-	  waitpid_time_usec = 0;
-	  continue;
-	} else {
-	  // Unexpected error
-	}
+        if (waitpid_retval == child_pid) {
+          // Child exited
+          retval = WEXITSTATUS(status);
+          waitpid_time_usec = 0;
+          continue;
+        }
+        else {
+          // Unexpected error
+        }
       }
     }
 
@@ -213,10 +232,12 @@ namespace usbguard
       // Try to be nice first
       ::kill(child_pid, SIGTERM);
       ::usleep(1000*500);
+
       // Send SIGKILL if the process is still running
       if (::waitpid(child_pid, &status, WNOHANG) != child_pid) {
-	::kill(child_pid, SIGKILL);
+        ::kill(child_pid, SIGKILL);
       }
+
       retval = -1;
     }
 
@@ -227,7 +248,6 @@ namespace usbguard
   {
     const std::string directory_separator = "/";
     std::vector<std::string> path_tokens;
-
     tokenizeString(filepath, path_tokens, directory_separator);
 
     if (path_tokens.size() == 0) {
@@ -241,7 +261,6 @@ namespace usbguard
     }
 
     const size_t substr_to = filename.find_last_of('.');
-
     return filename.substr(0, substr_to);
   }
 
@@ -249,11 +268,9 @@ namespace usbguard
   {
     const std::string directory_separator = "/";
     std::string parent_path(path);
-
     // find first not '/' (from end)
     // find first '/' (from end)
     // find first not '/' (from end)
-
     auto reverse_start_pos = \
       parent_path.find_last_not_of(directory_separator);
 
@@ -298,6 +315,7 @@ namespace usbguard
   std::string trimRight(const std::string& s, const std::string& delimiters)
   {
     const size_t substr_to = s.find_last_not_of(delimiters);
+
     if (substr_to != std::string::npos) {
       return s.substr(0, substr_to + 1);
     }
@@ -309,9 +327,11 @@ namespace usbguard
   std::string trimLeft(const std::string& s, const std::string& delimiters)
   {
     const size_t substr_from = s.find_first_not_of(delimiters);
+
     if (substr_from == std::string::npos) {
       return s;
-    } else {
+    }
+    else {
       return s.substr(substr_from);
     }
   }
@@ -328,7 +348,8 @@ namespace usbguard
    * an unsigned int.
    */
   template<>
-  std::string numberToString(const uint8_t number, const std::string& prefix, const int base, const int align, const char align_char)
+  std::string numberToString(const uint8_t number, const std::string& prefix, const int base, const int align,
+    const char align_char)
   {
     const uint16_t n = static_cast<uint16_t>(number);
     return numberToString(n, prefix, base, align, align_char);
@@ -348,13 +369,14 @@ namespace usbguard
         return false;
       }
     }
+
     return true;
   }
 
   int loadFiles(const std::string& directory,
-                std::function<std::string(const std::string&, const struct dirent *)> filter,
-                std::function<int(const std::string&, const std::string&)> loader,
-                std::function<bool(const std::pair<std::string, std::string>&, const std::pair<std::string, std::string>&)> sorter)
+    std::function<std::string(const std::string&, const struct dirent*)> filter,
+    std::function<int(const std::string&, const std::string&)> loader,
+    std::function<bool(const std::pair<std::string, std::string>&, const std::pair<std::string, std::string>&)> sorter)
   {
     DIR* dirobj = opendir(directory.c_str());
     int retval = 0;
@@ -362,16 +384,18 @@ namespace usbguard
     if (dirobj == nullptr) {
       throw ErrnoException("loadFiles", directory, errno);
     }
+
     try {
-      std::vector<std::pair<std::string,std::string>> loadpaths;
-      struct dirent *entry_ptr = nullptr;
+      std::vector<std::pair<std::string, std::string>> loadpaths;
+      struct dirent* entry_ptr = nullptr;
+
       /*
        * readdir usage note: We rely on the fact that readdir should be thread-safe
        * when used on a different directory stream. Since we create our own stream,
        * we should be fine with readdir here. The thread-safe version of readdir,
        * readdir_r, is deprecated in newer versions of glibc.
        */
-      while((entry_ptr = readdir(dirobj)) != nullptr) {
+      while ((entry_ptr = readdir(dirobj)) != nullptr) {
         const std::string filename(entry_ptr->d_name);
 
         if (filename == "." || filename == "..") {
@@ -382,7 +406,7 @@ namespace usbguard
         std::string loadpath = filter(fullpath, entry_ptr);
 
         if (!loadpath.empty()) {
-          loadpaths.emplace_back(std::make_pair(std::move(loadpath),std::move(fullpath)));
+          loadpaths.emplace_back(std::make_pair(std::move(loadpath), std::move(fullpath)));
         }
       }
 
@@ -396,7 +420,7 @@ namespace usbguard
         retval += loader(loadpath.first, loadpath.second);
       }
     }
-    catch(...) {
+    catch (...) {
       closedir(dirobj);
       throw;
     }
@@ -415,14 +439,14 @@ namespace usbguard
     }
   }
 
-  std::string symlinkPath(const std::string& linkpath, struct stat *st_user)
+  std::string symlinkPath(const std::string& linkpath, struct stat* st_user)
   {
     struct stat st = { };
-    struct stat *st_ptr = nullptr;
+    struct stat* st_ptr = nullptr;
 
     if (st_user == nullptr) {
       USBGUARD_SYSCALL_THROW("symlinkPath",
-          lstat(linkpath.c_str(), &st) != 0);
+        lstat(linkpath.c_str(), &st) != 0);
       st_ptr = &st;
     }
     else {
@@ -436,7 +460,7 @@ namespace usbguard
     if (st_ptr->st_size < 1) {
       st_ptr->st_size = 4096;
     }
- 
+
     /*
      * Check sanity of st_size. min: 1 byte, max: 1 MiB (because 1 MiB should be enough :)
      */
@@ -450,7 +474,7 @@ namespace usbguard
 
     if (link_size <= 0 || link_size > st_ptr->st_size) {
       USBGUARD_LOG(Debug) << "link_size=" << link_size
-                          << " st_size=" << st_ptr->st_size;
+        << " st_size=" << st_ptr->st_size;
       throw Exception("symlinkPath", linkpath, "symlink value size changed before read");
     }
 
